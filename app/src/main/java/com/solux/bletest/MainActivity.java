@@ -2,6 +2,7 @@ package com.solux.bletest;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -53,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private BleStateReceiver mBleStateReceiver;
     private PermissionUtils mPermission;
     private GpsBroadcastReceiver mGpsBroadcastReceiver;
+    private DisConnectReceiver mDisConnectReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,10 +112,15 @@ public class MainActivity extends AppCompatActivity {
                 ToastUtils.show(MainActivity.this, "蓝牙已关闭");
             }
         });
+
+        mDisConnectReceiver = new DisConnectReceiver();
+        IntentFilter intentFiltet = new IntentFilter();
+        intentFiltet.addAction("DisConnectReceiver");
+        registerReceiver(mDisConnectReceiver,intentFiltet);
     }
 
-    public void registerDisconnectReceiver() {
-        Intent intent = new Intent("com.solux.bletest.receiver.DisConnectReceiver");
+    public void sendDisconnectBroadcast() {
+        Intent intent = new Intent("DisConnectReceiver");
         sendBroadcast(intent);
     }
 
@@ -200,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
                 ToastUtils.show(MainActivity.this, "已断开连接");
-                registerDisconnectReceiver();
+                sendDisconnectBroadcast();
             }
         });
     }
@@ -232,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
                 ToastUtils.show(MainActivity.this, "已断开连接");
-                registerDisconnectReceiver();
+                sendDisconnectBroadcast();
             }
 
             @Override
@@ -274,6 +281,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         unregisterReceiver(mBleStateReceiver);
         unregisterReceiver(mGpsBroadcastReceiver);
+        unregisterReceiver(mDisConnectReceiver);
         BleManager.getInstance().destroy();
     }
 
@@ -310,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
                 openBle();
                 break;
             case R.id.btn_test:
-                registerDisconnectReceiver();
+                sendDisconnectBroadcast();
                 break;
         }
     }
