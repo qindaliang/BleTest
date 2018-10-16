@@ -27,15 +27,6 @@
             android:name=".service.BleService"
             android:exported="false"
             android:label="BleService" />
-
-        <receiver
-            android:name=".receiver.DisConnectReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.solux.bletest.receiver.DisConnectReceiver" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>
