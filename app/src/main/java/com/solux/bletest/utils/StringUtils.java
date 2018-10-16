@@ -31,7 +31,12 @@ public class StringUtils {
         return decodeResultString;
     }
 
-    public int[] listToInts(int a) {
+    /**
+     * list to intArray
+     * @param a
+     * @return
+     */
+    public static int[] listToInts(int a) {
         List<Integer> list = new ArrayList<>();
         list.add(0X98);
         list.add(0X66);
@@ -44,11 +49,40 @@ public class StringUtils {
         return ints;
     }
 
-    public String intsToHexString(int[] ints) {
+    /**
+     * intArray to 16进制string
+     * @param ints
+     * @return
+     */
+    public static String intsToHexString(int[] ints) {
         StringBuilder builder = new StringBuilder(ints.length);
         for (int i = 0; i < ints.length; i++) {
             builder.append(i);
         }
         return builder.toString();
+    }
+
+    /**
+     * 16进制 to byteArray
+     * @param hexString
+     * @return
+     */
+    public static byte[] hexStringToBytes(String hexString) {
+        if (hexString == null || hexString.equals("")) {
+            return null;
+        }
+        hexString = hexString.toUpperCase();
+        int length = hexString.length() / 2;
+        char[] hexChars = hexString.toCharArray();
+        byte[] d = new byte[length];
+        for (int i = 0; i < length; i++) {
+            int pos = i * 2;
+            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+        }
+        return d;
+    }
+
+    private static byte charToByte(char c) {
+        return (byte) "0123456789ABCDEF".indexOf(c);
     }
 }

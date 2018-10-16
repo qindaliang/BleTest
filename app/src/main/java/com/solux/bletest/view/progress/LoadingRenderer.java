@@ -16,7 +16,7 @@ import com.solux.bletest.utils.DensityUtil;
 
 public abstract class LoadingRenderer {
     private static final long ANIMATION_DURATION = 1333;
-    private static final float DEFAULT_SIZE = 56.0f;
+    private static final float DEFAULT_SIZE = 48.0f;
 
     private final ValueAnimator.AnimatorUpdateListener mAnimatorUpdateListener
             = new ValueAnimator.AnimatorUpdateListener() {

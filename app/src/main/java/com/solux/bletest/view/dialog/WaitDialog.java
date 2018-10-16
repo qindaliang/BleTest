@@ -1,5 +1,6 @@
 package com.solux.bletest.view.dialog;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -10,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,7 +31,7 @@ public class WaitDialog extends DialogFragment {
     @BindView(R.id.tv_tip)
     TextView tvTip;
     Unbinder unbinder;
-    private Context mContext;
+    private Activity mActivity;
     private String msg;
     private AlertDialog mDialog;
     private View mView;
@@ -37,14 +39,14 @@ public class WaitDialog extends DialogFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mContext = context;
+        mActivity = getActivity();
     }
 
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        LayoutInflater inflater = Objects.requireNonNull(getActivity()).getLayoutInflater();
+        AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+        LayoutInflater inflater = Objects.requireNonNull(mActivity).getLayoutInflater();
         mView = inflater.inflate(R.layout.dialog_wait, null);
         unbinder = ButterKnife.bind(this, mView);
         builder.setView(mView);
@@ -64,11 +66,13 @@ public class WaitDialog extends DialogFragment {
     }
 
     public void show(FragmentManager fragmentManager) {
-        this.show(fragmentManager, WaitDialog.class.getSimpleName());
+        super.show(fragmentManager,WaitDialog.class.getSimpleName() );
     }
 
     public void hide() {
-        mDialog.hide();
+        if (null != mActivity && !mActivity.isFinishing() && null != getDialog() && getDialog().isShowing()) {
+            super.dismiss();
+        }
     }
 
     @Override
@@ -78,7 +82,7 @@ public class WaitDialog extends DialogFragment {
         if (dialog != null) {
             DisplayMetrics dm = new DisplayMetrics();
             getActivity().getWindowManager().getDefaultDisplay().getMetrics(dm);
-            dialog.getWindow().setLayout((int) (dm.widthPixels * 0.5), ViewGroup.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setLayout((int) (dm.widthPixels * 0.43), ViewGroup.LayoutParams.WRAP_CONTENT);
             Objects.requireNonNull(getDialog().getWindow()).setBackgroundDrawableResource(android.R.color.transparent);
         }
     }

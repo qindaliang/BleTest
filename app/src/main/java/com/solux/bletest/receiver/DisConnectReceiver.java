@@ -1,17 +1,29 @@
 package com.solux.bletest.receiver;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-
-import com.solux.bletest.utils.ToastUtils;
+import com.solux.bletest.listener.DisconnectListener;
 
 public class DisConnectReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        ToastUtils.show(context,"连接已断开，请重新连接或扫描！");
-        Log.i("msg", "onReceive: 请重新连接或扫描");
+        new AlertDialog.Builder(context)
+                .setTitle("温馨提示")
+                .setMessage("连接已断开，请重新连接或扫描！")
+                .setNegativeButton("取消",
+                        (dialog, which) -> mDisconnectListener.cancel(dialog))
+                .setPositiveButton("重连",
+                        (dialog, which) -> mDisconnectListener.retryConnect(dialog))
+                .setCancelable(false)
+                .show();
+    }
+
+    private DisconnectListener mDisconnectListener;
+
+    public void setDisconnectListener(DisconnectListener disconnectListener) {
+        this.mDisconnectListener = disconnectListener;
     }
 }
