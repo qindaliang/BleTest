@@ -62,6 +62,14 @@ public class StringUtils {
         return builder.toString();
     }
 
+    public static String get0XHexString(String hexStr) {
+        StringBuilder mBuilder = new StringBuilder();
+        for(int i = 0 ; i < hexStr.length() ; i=i+2){
+            String s = hexStr.substring(i, i + 2);
+            mBuilder.append("0X").append(s.toUpperCase()).append("    ");
+        }
+        return mBuilder.toString();
+    }
     /**
      * 16进制 to byteArray
      * @param hexString

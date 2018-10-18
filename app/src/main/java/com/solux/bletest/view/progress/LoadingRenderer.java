@@ -11,7 +11,7 @@ import android.graphics.drawable.Drawable;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 
-import com.solux.bletest.utils.DensityUtil;
+import com.solux.bletest.utils.DensityUtils;
 
 
 public abstract class LoadingRenderer {
@@ -99,8 +99,8 @@ public abstract class LoadingRenderer {
     }
 
     private void initParams(Context context) {
-        mWidth = DensityUtil.dip2px(context, DEFAULT_SIZE);
-        mHeight = DensityUtil.dip2px(context, DEFAULT_SIZE);
+        mWidth = DensityUtils.dip2px(context, DEFAULT_SIZE);
+        mHeight = DensityUtils.dip2px(context, DEFAULT_SIZE);
 
         mDuration = ANIMATION_DURATION;
     }

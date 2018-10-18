@@ -3,9 +3,9 @@
 
     <item>
         <shape android:shape="oval" >
-            <corners android:radius="90dp"/>
+            <corners android:radius="80dp"/>
             <solid android:color="#f3876f" />
-            <size android:width="100dp" android:height="100dp"/>
+            <size android:width="90dp" android:height="90dp"/>
         </shape>
     </item>
 
@@ -13,17 +13,17 @@
         <selector xmlns:android="http://schemas.android.com/apk/res/android">
             <item android:state_pressed="true">
                 <shape android:shape="oval" >
-                    <corners android:radius="90dp"/>
+                    <corners android:radius="80dp"/>
                     <solid android:color="@android:color/darker_gray" />
-                    <size android:width="95dp" android:height="95dp"/>
+                    <size android:width="90dp" android:height="90dp"/>
                 </shape>
             </item>
 
             <item>
                 <shape android:shape="oval" >
-                    <corners android:radius="90dp"/>
+                    <corners android:radius="80dp"/>
                     <solid android:color="@android:color/white" />
-                    <size android:width="95dp" android:height="95dp"/>
+                    <size android:width="90dp" android:height="90dp"/>
                 </shape>
             </item>
 

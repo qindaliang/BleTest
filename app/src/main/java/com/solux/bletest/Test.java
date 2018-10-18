@@ -1,5 +1,7 @@
 package com.solux.bletest;
 
+import android.support.annotation.NonNull;
+
 import com.clj.fastble.utils.HexUtil;
 import com.solux.bletest.utils.HexUtils;
 import com.solux.bletest.utils.StringUtils;
@@ -37,15 +39,33 @@ public class Test {
             datas[i] = list.get(i).byteValue();
         }
         System.out.println("bytes[]:：" + Arrays.toString(datas));
+        System.out.println("16进制string：" + HexUtils.encodeHexStr(datas));
         System.out.println("--------------------------------------------");
 
 
+        byte[] bytes1 = HexUtils.hexStringToBytes("986610ad");
+        List<Byte> list1 = new ArrayList<>(4);
+        for(int i = 0 ; i < bytes1.length ; i++){
+            list1.add(bytes1[i]);
+        }
+        System.out.println(Arrays.toString(bytes1));
+        StringBuilder builder = new StringBuilder(4);
+        builder.append(((Byte)bytes1[1]).intValue());
+        System.out.println(((Byte)bytes1[1]).intValue());
 
+        System.out.println("--------------------------------------------");
         int[] int1 = StringUtils.listToInts(0X10);
         System.out.println(Arrays.toString(int1));
         String[] stringArray = StringUtils.intArrayTo0xStringArray(int1);
         System.out.println(Arrays.toString(stringArray));
         StringBuilder stringBuilder1 = new StringBuilder();
+//        for (int i = 0; i < stringArray.length; i++) {
+//            if (stringArray[i].length() == 1) {
+//                stringBuilder1.append("0X0" + stringArray[i]+"\t");
+//            } else {
+//                stringBuilder1.append("0X"+stringArray[i]+"\t");
+//            }
+//        }
         for (int i = 0; i < stringArray.length; i++) {
             if (stringArray[i].length() == 1) {
                 stringBuilder1.append("0" + stringArray[i]);
@@ -57,8 +77,23 @@ public class Test {
         byte[] bys = StringUtils.hexStringToBytes(stringBuilder1.toString());
         System.out.println(Arrays.toString(bys));
 
-        System.out.println("--------------------------------------------");
+        String hexStr = HexUtils.encodeHexStr(bys);
+        System.out.println(hexStr);
+        System.out.println(get0XHexString(hexStr));
+
+        System.out.println("--------------------stool------------------------");
         processdata();
+
+    }
+
+    @NonNull
+    private static String get0XHexString(String hexStr) {
+        StringBuilder mBuilder = new StringBuilder();
+        for(int i = 0 ; i < hexStr.length() ; i=i+2){
+            String s = hexStr.substring(i, i + 2);
+            mBuilder.append("0X").append(s.toUpperCase()).append("\t");
+        }
+        return mBuilder.toString();
     }
 
     private static void processdata() {

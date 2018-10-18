@@ -19,6 +19,6 @@
         android:layout_width="wrap_content"
         android:layout_marginBottom="5dp"
         android:layout_height="wrap_content"
-        android:text="正在搜索蓝牙..."
+        android:text="正在搜索蓝牙"
         android:textSize="16sp" />
 </LinearLayout>

@@ -11,4 +11,6 @@ public class Constants {
 
     public static final String uuid_service_notify = "00008957-786e-4340-8bbb-2201c8699534";
     public static final String uuid_chara_notify = "00008957-786e-4340-8bbb-2201c8699534";
+    public static final String HISTORY_DATA = "data";
+    public static final String SEND_RECIVERED = "broadcast";
 }
