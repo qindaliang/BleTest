@@ -1,6 +1,7 @@
 package com.solux.bletest.ui;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
 import android.content.Context;
@@ -21,16 +22,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleGattCallback;
 import com.clj.fastble.callback.BleNotifyCallback;
@@ -53,6 +52,7 @@ import com.solux.bletest.permission.PermissionUtils;
 import com.solux.bletest.receiver.BleStateReceiver;
 import com.solux.bletest.receiver.DisConnectReceiver;
 import com.solux.bletest.receiver.GpsBroadcastReceiver;
+import com.solux.bletest.receiver.RetryDisConnectReceiver;
 import com.solux.bletest.utils.DateUtils;
 import com.solux.bletest.utils.DensityUtils;
 import com.solux.bletest.utils.HexUtils;
@@ -81,6 +81,10 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
     private static final int RETRY_CONNECT = 100;
     private static final int SCAN_DELAY = 101;
     public static final String SEND_DATA = "200";
+    private static final int AUTO_CONNECT = 102;
+    private static final int SECOND = 103;
+    private static final int HIDE_DIALOG = 104;
+    private static final int HIDE_RETRYCONNECT = 105;
     @BindView(R.id.btn_test)
     Button btnTest;
     @BindView(R.id.btn_connect)
@@ -111,12 +115,14 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
     TextView tvRecive;
     @BindView(R.id.tv_background)
     TextView tvBackground;
-    @BindView(R.id.et_data)
-    EditText etData;
-    @BindView(R.id.ll_data)
-    LinearLayout llData;
+    @BindView(R.id.tv_result)
+    TextView tvResult;
+//    @BindView(R.id.et_data)
+//    EditText etData;
+//    @BindView(R.id.ll_data)
+//    LinearLayout llData;
 
-    private WaitDialog mConnectDialog;
+    private WaitDialog mDialog;
     private BleStateReceiver mBleStateReceiver;
     private PermissionUtils mPermission;
     private GpsBroadcastReceiver mGpsBroadcastReceiver;
@@ -141,13 +147,15 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
     private FragmentTransaction mTransaction;
     private ReciverFragment mReciverFragment;
     private long end;
-    private WaitDialog mSendDialog;
     private boolean isHandDisconnect;
     private int mLlDataTop;
     private int mTop;
     private boolean isShowKeyBoard;
     private String[] dataArray = new String[]{"986610ad", "986620ad"};
     private int postion;
+    private RetryDisConnectReceiver mRetryDisConnectReceiver;
+    private boolean isRetry;
+    private Dialog retryDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,12 +165,12 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         ButterKnife.bind(this);
         checkPermission();
         initConnectDialog();
-        initSendDialog();
         initListener();
-        initBleConfig();
+        initBleConfig(10000);
         registerBleReceiver();
         initPostion();
-        etData.setText(dataArray[postion]);
+        initDialog();
+        //       etData.setText(dataArray[postion]);
         mTransaction = getSupportFragmentManager().beginTransaction();
         showFragment(false);
         showFragment(true);
@@ -173,13 +181,9 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         container.animate().scaleY(0);
         sbAuto.setOnCheckedChangeListener((buttonView, isChecked) -> setAuto(isChecked));
         sbOpen.setOnCheckedChangeListener((buttonView, isChecked) -> {
-//            if (judgeDoubleClickTime(500)) {
-//                sbOpen.setCheckedNoEvent(true);
-//                return;
-//            }
             if (isChecked) {
                 isShowKeyBoard = true;
-                llData.animate().y(DensityUtils.dip2px(this, 392));
+                //   llData.animate().y(DensityUtils.dip2px(this, 392));
 
                 btnConnect.animate().scaleX(0.7f).scaleY(0.7f)
                         .x(DensityUtils.dip2px(this, 40))
@@ -190,10 +194,10 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                 container.animate().scaleY(1);
                 container.setVisibility(View.VISIBLE);
                 showFragment(true);
-                mTop = llData.getTop();
+                //     mTop = llData.getTop();
             } else {
                 isShowKeyBoard = false;
-                llData.animate().y(llData.getTop() - mLlDataTop);
+                //    llData.animate().y(llData.getTop() - mLlDataTop);
                 btnConnect.animate().scaleX(1f).scaleY(1f)
                         .x(btnConnect.getLeft() - mBtnConnectX)
                         .y(btnConnect.getTop() - mBtnConnectY);
@@ -207,14 +211,14 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         SoftKeyBoardListener.setListener(this, new SoftKeyBoardListener.OnSoftKeyBoardChangeListener() {
             @Override
             public void keyBoardShow(int height) {
-                if (isShowKeyBoard)
-                    llData.animate().y(DensityUtils.dip2px(MainActivity.this, 100));
+                //  if (isShowKeyBoard)
+                //     llData.animate().y(DensityUtils.dip2px(MainActivity.this, 100));
             }
 
             @Override
             public void keyBoardHide(int height) {
-                if (isShowKeyBoard)
-                    llData.animate().y(llData.getTop() + DensityUtils.dip2px(MainActivity.this, 70));
+                //  if (isShowKeyBoard)
+                //     llData.animate().y(llData.getTop() + DensityUtils.dip2px(MainActivity.this, 70));
             }
         });
     }
@@ -263,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         mBtnConnectX = btnConnect.getLeft();
         mBtnConnectY = btnConnect.getTop();
         tvBackgroundX = tvBackground.getLeft();
-        mLlDataTop = llData.getTop();
+        //  mLlDataTop = llData.getTop();
     }
 
     public void setAuto(boolean auto) {
@@ -300,7 +304,7 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
             @Override
             public void off() {
                 ToastUtils.show(MainActivity.this, "蓝牙已关闭");
-                hideDialog(mConnectDialog);
+                hideDialog();
                 BleManager.getInstance().disconnect(mBleData.getBleDevice());
             }
         });
@@ -319,6 +323,22 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
             @Override
             public void retryConnect(DialogInterface dialog) {
                 openBle();
+            }
+        });
+
+        mRetryDisConnectReceiver = new RetryDisConnectReceiver();
+        IntentFilter intentFilter1 = new IntentFilter();
+        intentFilter1.addAction("RetryDisConnectReceiver");
+        registerReceiver(mRetryDisConnectReceiver, intentFilter1);
+        mRetryDisConnectReceiver.setDisconnectListener(new DisconnectListener() {
+            @Override
+            public void cancel(DialogInterface dialog) {
+                dialog.dismiss();
+            }
+
+            @Override
+            public void retryConnect(DialogInterface dialog) {
+
             }
         });
     }
@@ -342,6 +362,12 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
 
     public void sendDisConnectBroadcast() {
         Intent intent = new Intent("DisConnectReceiver");
+        //   intent.putExtra(Constants.SEND_RECIVERED,recivered);
+        sendBroadcast(intent);
+    }
+
+    public void sendRetryDisConnectBroadcast() {
+        Intent intent = new Intent("RetryDisConnectReceiver");
         //   intent.putExtra(Constants.SEND_RECIVERED,recivered);
         sendBroadcast(intent);
     }
@@ -377,12 +403,13 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
 
     public void scanBleName() {
         if (!isConnectBleName(mBleData.getBleDevice())) {
+            showConnectDialog();
             BleManager.getInstance().scan(new BleScanCallback() {
                 @Override
                 public void onScanFinished(List<BleDevice> scanResultList) {
                     if (scanResultList.size() <= 0) {
                         ToastUtils.show(MainActivity.this, "没有搜索到蓝牙设备");
-                        hideDialog(mConnectDialog);
+                        hideDialog();
                         setDisVisiable();
                     } else if (scanResultList.size() == 1) {
                         setBleText(scanResultList.get(0));
@@ -410,9 +437,9 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
 
                 @Override
                 public void onScanStarted(boolean success) {
-                    showDialog(mConnectDialog);
                     scanCount = 0;
                     mTimes.clear();
+                    tvResult.setText("");
                     EventBus.getDefault().post(new MsgSendData(null));
                     EventBus.getDefault().post(new MsgReciveData(null));
                 }
@@ -464,28 +491,36 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                     message.what = RETRY_CONNECT;
                     message.obj = bleDevice;
                     mMyHandler.sendMessageDelayed(message, 500);
+                    if (isRetry){
+                        mMyHandler.sendEmptyMessageDelayed(HIDE_RETRYCONNECT, 100);
+                    }
                 }
 
                 @Override
                 public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
                     ToastUtils.show(MainActivity.this, "连接成功");
                     Log.i(TAG, "onConnectSuccess: 连接成功");
-                    hideDialog(mConnectDialog);
+                    hideDialog();
                     setVisiable();
                     tvState.setText("连接成功");
                     tvState.setTextColor(Color.GREEN);
                     recivered = 0;
                     mBleData = new BleData();
                     mBleData.setBleDevice(bleDevice);
+                    if (isRetry){
+                        mMyHandler.sendEmptyMessageDelayed(HIDE_RETRYCONNECT, 100);
+                    }
                     bleNotify(bleDevice);
                 }
 
                 @Override
                 public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
                     ToastUtils.show(MainActivity.this, "已断开连接");
+                    mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 100);
                     Log.i(TAG, "onDisConnected: 已断开连接");
                     tvState.setText("已断开连接");
                     tvState.setTextColor(Color.GRAY);
+                    tvResult.setText("");
                     if (isHandDisconnect) {
                         isHandDisconnect = false;
                         return;
@@ -496,7 +531,8 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                             sendDisConnectBroadcast();
                         }
                     } else {
-                        scanBleName();
+                        isRetry = true;
+                        mMyHandler.sendEmptyMessageAtTime(AUTO_CONNECT, 100);
                     }
                 }
             });
@@ -510,7 +546,6 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                     "89560002-b5a3-f393-e0a9-e50e24dcca9e", bytes, new BleWriteCallback() {
                         @Override
                         public void onWriteSuccess(int current, int total, byte[] justWrite) {
-                            hideDialog(mSendDialog);
                             mSendBuilder.append(DateUtils.getCurrentTime() + "发送成功: " + Arrays.toString(justWrite));
                             mSendBuilder.append("\n");
                             Log.i(TAG, "发送成功: " + mSendBuilder.toString());
@@ -519,21 +554,20 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                             String send = DateUtils.getCurrentTime() + "发送成功: " + xHexString
                                     + "\n" + DateUtils.getCurrentTime() + "发送成功: " + hexStr;
                             EventBus.getDefault().post(new MsgSendData(send));
-                            postion++;
-                            if (postion < dataArray.length) {
-                                etData.setText(dataArray[postion]);
-
-                                byte[] toBytes = HexUtils.hexStringToBytes(dataArray[postion]);
-                                sendBleData(mBleData.getBleDevice(), toBytes);
-                            }
                         }
 
                         @Override
                         public void onWriteFailure(BleException exception) {
-                            hideDialog(mSendDialog);
+                            mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 100);
+                            tvResult.setText("测试失败，写入数据失败！");
+                            tvResult.setTextColor(getResources().getColor(R.color.red));
                             Log.i(TAG, "onWriteFailure: " + exception.getDescription());
+                            tvResult.setText("");
                         }
                     });
+        } else {
+            mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 500);
+            ToastUtils.show(MainActivity.this, "请先连接设备！");
         }
     }
 
@@ -561,51 +595,73 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                                     DateUtils.getCurrentTime() + "接收成功: " + mHexStr;
                             EventBus.getDefault().post(new MsgReciveData(reciveData));
 
-                            if ("981cad".equals(mHexStr)||"982cad".equals(mHexStr)) {
-                                String success = DateUtils.getCurrentTime() + "测试成功，数据收发正常";
-                                EventBus.getDefault().post(new MsgReciveData(success));
-                                EventBus.getDefault().post(new MsgSendData(success));
-                                ToastUtils.show(getApplicationContext(), "测试成功，数据收发正常");
-                            }else {
-                                String fail = DateUtils.getCurrentTime() + "测试失败，数据收发异常";
-                                EventBus.getDefault().post(new MsgReciveData(fail));
-                                EventBus.getDefault().post(new MsgSendData(fail));
-                                ToastUtils.show(getApplicationContext(), "测试失败，数据收发异常");
+//                            if ("981cad".equals(mHexStr)||"982cad".equals(mHexStr)) {
+//                                String success = DateUtils.getCurrentTime() + "测试成功，数据收发正常";
+//                                EventBus.getDefault().post(new MsgReciveData(success));
+//                                EventBus.getDefault().post(new MsgSendData(success));
+//                                ToastUtils.show(getApplicationContext(), "测试成功，数据收发正常");
+//                            }else {
+//                                String fail = DateUtils.getCurrentTime() + "测试失败，数据收发异常";
+//                                EventBus.getDefault().post(new MsgReciveData(fail));
+//                                EventBus.getDefault().post(new MsgSendData(fail));
+//                                ToastUtils.show(getApplicationContext(), "测试失败，数据收发异常")
+//                            }
+
+                            if ("981cad".equals(mHexStr)) {
+                                mMyHandler.sendEmptyMessageDelayed(SECOND, 100);
+                            } else if ("982cad".equals(mHexStr)) {
+                                tvResult.setText("测试成功，数据收发正常!");
+                                tvResult.setTextColor(getResources().getColor(R.color.black));
+                                mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 100);
+                            } else {
+                                tvResult.setText("测试失败，数据收发错误!");
+                                tvResult.setTextColor(getResources().getColor(R.color.red));
+                                mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 100);
                             }
                         }
                     });
         }
     }
 
-    private void initBleConfig() {
+    private void initBleConfig(int time) {
         BleScanRuleConfig scanRuleConfig = new BleScanRuleConfig.Builder()
                 .setDeviceName(true, Constants.BLE_NAME)
                 //  .setDeviceMac(Constants.BLE_MAC)
-                .setScanTimeOut(20000)
+                .setScanTimeOut(time)
                 .build();
         BleManager.getInstance().initScanRule(scanRuleConfig);
     }
 
+
     public void initConnectDialog() {
-        mConnectDialog = new WaitDialog();
-        mConnectDialog.setMsg("正在连接中");
+        mDialog = new WaitDialog();
+        mDialog.setMsg("正在连接中");
     }
 
-    public void initSendDialog() {
-        mSendDialog = new WaitDialog();
-        mSendDialog.setMsg("数据发送中");
-    }
-
-    public void showDialog(WaitDialog dialog) {
-        if (dialog.isAdded()) {
-            getSupportFragmentManager().beginTransaction().remove(dialog).commit();
+    public void showConnectDialog() {
+        mDialog.setMsg("正在连接中");
+        mDialog.setCancel(false);
+        if (mDialog.isAdded()) {
+            getSupportFragmentManager().beginTransaction().remove(mDialog).commit();
         }
-        dialog.show(getSupportFragmentManager());
+        mDialog.show(getSupportFragmentManager());
     }
 
-    public void hideDialog(WaitDialog dialog) {
-        dialog.hide();
+    public void showSendDialog() {
+        mDialog.setMsg("数据发送中\n等待接收");
+        mDialog.setCancel(false);
+        if (mDialog.isAdded()) {
+            getSupportFragmentManager().beginTransaction().remove(mDialog).commit();
+        }
+        mDialog.show(getSupportFragmentManager());
     }
+
+    public void hideDialog() {
+        if (mDialog != null) {
+            mDialog.hide();
+        }
+    }
+
 
     public void setVisiable() {
         llBottom.setVisibility(View.VISIBLE);
@@ -629,6 +685,7 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         unregisterReceiver(mBleStateReceiver);
         unregisterReceiver(mGpsBroadcastReceiver);
         unregisterReceiver(mDisConnectReceiver);
+        unregisterReceiver(mRetryDisConnectReceiver);
         BleManager.getInstance().destroy();
     }
 
@@ -720,24 +777,27 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
         }
         switch (view.getId()) {
             case R.id.btn_connect:
+                initBleConfig(10000);
                 openBle();
                 // scanAndConect();
                 break;
             case R.id.btn_test:
                 if (isConnectBleName(mBleData.getBleDevice())) {
-                    showDialog(mSendDialog);
+                    showSendDialog();
+                    tvResult.setText("");
                     byte[] bytes = processData(0X10);
                     String xHexString = StringUtils.get0XHexString(HexUtils.encodeHexStr(bytes));
                     Log.i(TAG, "0X16进制: " + xHexString);
-                    String trim = etData.getText().toString().trim();
-                    if (TextUtils.isEmpty(trim)) {
-                        sendBleData(mBleData.getBleDevice(), bytes);
-                    } else {
-                        byte[] toBytes = HexUtils.hexStringToBytes(trim);
-                        sendBleData(mBleData.getBleDevice(), toBytes);
-                        Log.i(TAG, "0X16进制: " + trim);
-                    }
+                    //        String trim = etData.getText().toString().trim();
+                    //        if (TextUtils.isEmpty(trim)) {
+                    sendBleData(mBleData.getBleDevice(), HexUtils.hexStringToBytes(dataArray[0]));
+                    //        } else {
+                    //            byte[] toBytes = HexUtils.hexStringToBytes(trim);
+                    //           sendBleData(mBleData.getBleDevice(), toBytes);
+                    //           Log.i(TAG, "0X16进制: " + trim);
+                    //        }
                 } else {
+                    mMyHandler.sendEmptyMessageDelayed(HIDE_DIALOG, 500);
                     ToastUtils.show(MainActivity.this, "请先连接设备！");
                 }
                 break;
@@ -811,14 +871,45 @@ public class MainActivity extends AppCompatActivity implements CustomAdapt {
                         connectBle(bleDevice.getMac());
                         Log.i(TAG, "handleMessage: " + retryCount);
                     } else {
-                        hideDialog(mConnectDialog);
+                        hideDialog();
                     }
                     break;
                 case SCAN_DELAY:
                     stopScan();
                     Log.i(TAG, "handleMessage: ");
                     break;
+                case AUTO_CONNECT:
+                    initBleConfig(60000);
+                    sendRetryDisConnectBroadcast();
+                    scanBleName();
+                    break;
+                case SECOND:
+                    byte[] toBytes = HexUtils.hexStringToBytes(dataArray[1]);
+                    sendBleData(mBleData.getBleDevice(), toBytes);
+                    break;
+                case HIDE_DIALOG:
+                    hideDialog();
+                    break;
+                case HIDE_RETRYCONNECT:
+                    mRetryDisConnectReceiver.hide();
+                //    hideReteyDialog();
+                //    isRetry = false;
+                    break;
             }
         }
+    }
+
+    public void initDialog(){
+        retryDialog = new Dialog(this);
+        retryDialog.setContentView(LayoutInflater.from(this).inflate(R.layout.dialog_wait_retry, null));
+        retryDialog.setCanceledOnTouchOutside(false);
+        retryDialog.setCancelable(false);
+    }
+
+    public void showReteyDialog(){
+        retryDialog.show();
+    }
+    public void hideReteyDialog(){
+        retryDialog.dismiss();
     }
 }
